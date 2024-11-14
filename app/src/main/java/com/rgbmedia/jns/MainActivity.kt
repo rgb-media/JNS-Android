@@ -1,8 +1,6 @@
 package com.rgbmedia.jns
 
 import android.os.Bundle
-import android.provider.SyncStateContract.Constants
-import android.util.Log
 import android.webkit.CookieManager
 import android.webkit.WebView
 import androidx.activity.ComponentActivity
@@ -31,12 +29,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.google.gson.Gson
+import com.rgbmedia.jns.network.model.LoginModel
 import com.rgbmedia.jns.ui.theme.jnsBlue
 import com.rgbmedia.jns.ui.theme.jnsRed
 import com.rgbmedia.jns.utils.RgbConstants
 import com.rgbmedia.jns.views.LoginView
 import com.rgbmedia.jns.webview.RgbWebView
-
 
 val headerHeight = 60.dp
 
@@ -50,6 +49,48 @@ class MainActivity : ComponentActivity() {
             val url = remember { mutableStateOf(RgbConstants.BASE_URL) }
             val showJavascriptDialog = remember { mutableStateOf(false) }
             val showLoginDialog = remember { mutableStateOf(false) }
+            val showLoginPopup = remember { mutableStateOf(false) }
+            val loginModel = remember { mutableStateOf<LoginModel?>(null) }
+
+            if (showLoginPopup.value) {
+                var message = "Logged in as " + loginModel.value?.firstName + " " + loginModel.value?.lastName
+                if (loginModel.value?.error != null) {
+                    message = loginModel.value?.message!!
+                } else {
+                    val useridString = RgbConstants.USERID_COOKIE + "=" + loginModel.value?.id + "; expires=Sat, 01-Jan-2030 00:00:00 GMT; path=/"
+                    CookieManager.getInstance().setCookie(".jns.org", useridString)
+
+                    val userJson = Gson().toJson(loginModel.value)
+                    val crmuserString = RgbConstants.CRMUSER_COOKIE + "=" + userJson + "; expires=Sat, 01-Jan-2030 00:00:00 GMT; path=/"
+                    CookieManager.getInstance().setCookie(".jns.org", crmuserString)
+
+                    val crmSession = RgbConstants.CRMSESSION_COOKIE + "=" + loginModel.value?.crmSession + "; expires=Sat, 01-Jan-2030 00:00:00 GMT; path=/"
+                    CookieManager.getInstance().setCookie(".jns.org", crmSession) {
+                        url.value = "/"
+                        url.value = RgbConstants.BASE_URL
+                    }
+                }
+
+                AlertDialog(
+                    onDismissRequest = { showLoginPopup.value = false },
+                    title = { Text("Login result") },
+                    text = {
+                        Column(
+                            modifier = Modifier.verticalScroll(rememberScrollState())
+                        ) {
+                            Text(text = message)
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showLoginPopup.value = false
+                            showLoginDialog.value = false
+                        }) {
+                            Text("OK".uppercase())
+                        }
+                    }
+                )
+            }
 
             if (showJavascriptDialog.value) {
                 AlertDialog(
@@ -70,7 +111,7 @@ class MainActivity : ComponentActivity() {
 
             Box {
                 Column {
-                    Header(url, showLoginDialog)
+                    Header(showLoginDialog)
                     RgbWebView(url, showJavascriptDialog)
                 }
 
@@ -82,7 +123,7 @@ class MainActivity : ComponentActivity() {
                 )
 
                 if (showLoginDialog.value) {
-                    LoginView(showLoginDialog)
+                    LoginView(loginModel, showLoginDialog, showLoginPopup)
                 }
             }
         }
@@ -90,7 +131,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Header(url: MutableState<String>, showLoginDialog: MutableState<Boolean>) {
+fun Header(showLoginDialog: MutableState<Boolean>) {
     val showAllCookiesDialog = remember { mutableStateOf(false) }
 
     if (showAllCookiesDialog.value) {
@@ -134,21 +175,6 @@ fun Header(url: MutableState<String>, showLoginDialog: MutableState<Boolean>) {
             TextButton(
                 onClick = {
                     showLoginDialog.value = true
-
-                    val userId = "133"
-                    val useridString = RgbConstants.USERID_COOKIE + "=" + userId + "; expires=Sat, 01-Jan-2030 00:00:00 GMT; path=/"
-                    CookieManager.getInstance().setCookie(".jns.org", useridString)
-
-                    val userJson = "{\"id\":133,\"status\":\"pressPlus\",\"hasSubscription\":false,\"hasComments\":false,\"firstName\":\"gal test\",\"lastName\":\"gal\"}"
-                    val crmuserString = RgbConstants.CRMUSER_COOKIE + "=" +userJson + "; expires=Sat, 01-Jan-2030 00:00:00 GMT; path=/"
-                    CookieManager.getInstance().setCookie(".jns.org", crmuserString)
-
-                    val value = "true"
-                    val crmSession = RgbConstants.CRMSESSION_COOKIE + "=" + value + "; expires=Sat, 01-Jan-2030 00:00:00 GMT; path=/"
-                    CookieManager.getInstance().setCookie(".jns.org", crmSession) {
-                        url.value = "/"
-                        url.value = RgbConstants.BASE_URL
-                    }
                 },
                 modifier = Modifier.size(width = headerHeight, height = headerHeight)
             ) {

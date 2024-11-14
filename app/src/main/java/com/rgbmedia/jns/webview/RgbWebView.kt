@@ -28,6 +28,8 @@ fun RgbWebView(url: MutableState<String>, showJavascriptDialog: MutableState<Boo
 
             settings.javaScriptEnabled = true
             settings.javaScriptCanOpenWindowsAutomatically = true
+            settings.domStorageEnabled = true
+            settings.databaseEnabled = true
 
             settings.userAgentString += " rgbmedia-app android app"
 

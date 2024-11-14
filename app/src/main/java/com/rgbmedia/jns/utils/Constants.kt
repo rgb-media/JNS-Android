@@ -3,7 +3,7 @@ package com.rgbmedia.jns.utils
 object RgbConstants {
     const val GENERAL_DEBUG_TAG = "RGBDebug"
 
-    const val SERVER        = "www"
+    const val SERVER        = "dev"// "www"
     const val DOMAIN_NAME   = "jns.org"
     const val BASE_URL      = "https://" + SERVER + "." + DOMAIN_NAME + "/"
     var LOGIN_URL           = "https://" + (if (SERVER == "dev") "dev" else "") + "crm.jns.org/api/"
